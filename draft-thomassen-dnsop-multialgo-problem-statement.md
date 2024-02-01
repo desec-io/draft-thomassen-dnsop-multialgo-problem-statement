@@ -59,11 +59,11 @@ informative:
     author:
       - name: Duane Wessels
     date: 2023
-  RolloverDesignTeam:
-    target: https://mailarchive.ietf.org/arch/msg/dnsop/KFI0bOgeaGj509HkW-1tUxJVEuY/
-    title: "[DNSOP] Meet the Root Zone Algorithm Rollover Design Team @ IETF 116"
+  AlgorithmRolloverStudy:
+    target: https://itp.cdn.icann.org/en/files/domain-name-system-security-extensions-dnssec/draft-report-root-zone-dnssec-algorithm-rollover-study-19-10-2023-en.pdf
+    title: Root Zone Algorithm Rollover Study (Draft)
     author:
-      - name: James Mitchell
+      - org: Design Team Report
     date: 2023
   IANAproposal:
     target: https://www.icann.org/en/system/files/files/proposal-future-rz-ksk-rollovers-01nov19-en.pdf
@@ -123,10 +123,8 @@ in multi-signer DNSSEC setups, and thus to multi-signer DNSSEC itself.
 Further, during an algorithm rollover, when both the old and the new DS record
 have been deployed, there may be benefits (such as smaller response sizes, see
 {{rollovers}}) in not always requiring nameservers to serve signatures of either
-algorithm. This desire has been expressed in a presentation by the Root Zone
-Algorithm Rollover Study Design Team at IETF 116 {{RolloverDesignTeam}}.
-
-TODO: actual presentation not publicly available; should we make it available?
+algorithm. This desire has been expressed in the Root Zone Algorithm Rollover
+Study {{AlgorithmRolloverStudy}}.
 
 Looking closer, it turns out that these two problems are two sides of the same
 coin; they are actually the same problem.
@@ -187,9 +185,8 @@ could lead to a potentially rather long phase of double-signing (on the order of
 a year) during which the above disadvantages would manifest.
 
 It thus seems desirable to find a way for publishing the new trust anchor
-without introducing the new algorithm into the zone just yet, as emphasized by
-the Root Zone Algorithm Rollover Study Design Team at IETF 116
-{{RolloverDesignTeam}}.
+without introducing the new algorithm into the zone just yet, as emphasized in
+the Root Zone Algorithm Rollover Study {{AlgorithmRolloverStudy}}.
 
 ## DNSSEC-Enabled Multi-Provider Setups
 
@@ -379,11 +376,11 @@ when we keep doing what the specs say.
 
 ### Root zone (+ other zones with trust anchors)
 
-For the reasons laid out by the Root Zone Algorithm Rollover Study Design Team
-{{RolloverDesignTeam}}, the root will have difficulty following this practice.
-The preferred approach would be to publish a trust anchor for the new algorithm
-and allow it to be configured on resolvers, without yet introducing the
-corresponding RRSIGs into the zone.
+For the reasons laid out in the Root Zone Algorithm Rollover Study
+{{AlgorithmRolloverStudy}}, the root will have difficulty following this
+practice. The preferred approach would be to publish a trust anchor for the new
+algorithm and allow it to be configured on resolvers, without yet introducing
+the corresponding RRSIGs into the zone.
 
 Note that unlike in the DS case, the situation where all trust anchor algorithms
 are unsupported cannot plausibly occur, as it does not seem reasonable to
