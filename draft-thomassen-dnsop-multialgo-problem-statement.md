@@ -6,8 +6,8 @@ date: {DATE}
 category: info
 
 ipr: trust200902
-area: Internet
-workgroup: DNSOP Working Group
+area: "Operations and Management"
+workgroup: "Domain Name System Operations"
 keyword: Internet-Draft
 
 stand_alone: yes
