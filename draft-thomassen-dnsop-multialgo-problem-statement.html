@@ -1,0 +1,1957 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>DNSSEC Multi-Algorithm Problem Statement</title>
+<meta content="Peter Thomassen" name="author">
+<meta content="Duane Wessels" name="author">
+<meta content="Shumon Huque" name="author">
+<meta content="
+       There is an increasing awareness for use cases that rely on signed DNS responses
+to contain RRSIGs for only some (not all) of the algorithms advertised in a
+domain's DS RRset or trust anchor set. This document looks at these use cases in
+detail, and describes how validating resolvers are expected to react today when
+encountering these situations. Mostly, such setups work fine, but they are not
+compliant with specifications. To address this problem, the document walks
+through a number of solution approaches, each based on a different idea, and
+points out each one's benefits and disadvantages. 
+       TO BE REMOVED: This document is being collaborated on in Github at:
+ https://github.com/peterthomassen/draft-thomassen-dnsop-multialgo-problem-statement .
+The most recent working version of the document, open issues, etc. should all be
+available there.  The authors (gratefully) accept pull requests. 
+    " name="description">
+<meta content="xml2rfc 3.19.1" name="generator">
+<meta content="Internet-Draft" name="keyword">
+<meta content="draft-thomassen-dnsop-multialgo-problem-statement-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.19.1
+    Python 3.11.6
+    ConfigArgParse 1.7
+    google-i18n-address 3.1.0
+    intervaltree 3.1.0
+    Jinja2 3.1.2
+    lxml 4.9.3
+    platformdirs 4.1.0
+    pycountry 22.3.5
+    PyYAML 6.0.1
+    requests 2.31.0
+    setuptools 68.2.2
+    six 1.16.0
+    wcwidth 0.2.13
+-->
+<link href="draft-thomassen-dnsop-multialgo-problem-statement.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Cabin Condensed", sans-serif;
+  font-weight: 600;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1#title {
+  font-size: 32px;
+  line-height: 40px;
+  clear: both;
+}
+h1#title, h1#rfcnum {
+  margin: 1.5em 0 0.2em;
+}
+h1#rfcnum + h1#title {
+  margin: 0.2em 0;
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+}
+#abstract+p code, #abstract+p samp, #abstract+p tt {
+  font-size: 16px;
+  line-height: 0;
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+/* font-family isn't space-separated, but =~ will have to do */
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  border: none;
+  /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+     support flexbox yet.
+  */
+  display: table;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+}
+:is(ol, ul) :is(ol, ul) {
+  margin-left: 1em;
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+.ulCompact li {
+  margin: 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+}
+ul.empty li, .ulEmpty li {
+  margin-top: 0.5em;
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  line-height: 1;
+  margin: 0 0 0 2em;
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+}
+dl.olPercent {
+  --indent: 5ch;
+}
+dl > dt {
+  float: left;
+  margin-right: 2ch;
+  min-width: 8ch;
+}
+dl.dlNewline > dt {
+  float: none;
+}
+dl > dd {
+  margin-bottom: .8em;
+  margin-left: var(--indent) !important; /* stupid element overrides */
+  min-height: 2ex;
+}
+dl.olPercent > dt {
+  min-width: calc(var(--indent) - 2ch);
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+}
+:is(dl.compact, .dlCompact) > dd > :is(:first-child, .break:first-child + *) {
+  margin-top: 0;
+}
+:is(dl.compact, .dlCompact) > dd > :is(:last-child) {
+  margin-bottom: 0;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a, a[href].selfRef:hover {
+  text-decoration: none;
+}
+a[href] {
+  color: var(--link-color);
+}
+a[href].selfRef, .iref + a[href].internal {
+  color: var(--text-color);
+}
+a[href]:hover {
+  text-decoration: underline;
+}
+a[href].selfRef:hover {
+  background-color: var(--highlight-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) p {
+    margin: -2px 0;
+    max-height: 0;
+    transition: max-height 2s ease, margin 0.5s ease 0.5s;
+    overflow: hidden;
+  }
+  :is(#status-of-memo, #copyright):hover p,
+  :is(#status-of-memo, #copyright) h2:target ~ p {
+    margin: 0.5em 0;
+    max-height: 500px;
+    overflow: auto;
+  }
+  pre, svg {
+    display: inline-block;
+    overflow-x: auto;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+}
+table.right {
+  margin-left: auto;
+}
+table.center {
+  margin-left: auto;
+  margin-right: auto;
+}
+table.left {
+  margin-right: auto;
+}
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+table caption {
+  margin: 0;
+  padding: 3px 0 3px 1em;
+}
+table p {
+  margin: 0;
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+}
+a.pilcrow[href] { color: var(--pilcrow-weak); }
+a.pilcrow[href]:hover { text-decoration: none; }
+@media not print {
+  :hover > a.pilcrow {
+    opacity: 1;
+  }
+  a.pilcrow[href]:hover {
+    color: var(--pilcrow-strong);
+    background-color: transparent;
+  }
+}
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+}
+#identifiers dt {
+  width: var(--identifier-width);
+  min-width: var(--identifier-width);
+  clear: left;
+  float: left;
+  text-align: right;
+  margin-right: 1ch;
+}
+#identifiers dd {
+  margin: 0;
+  margin-left: calc(1em + var(--identifier-width)) !important;
+  min-width: 5em;
+}
+#identifiers .authors .author {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+#identifiers .authors .org {
+  font-style: italic;
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: left;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+}
+#toc nav ul {
+  margin: 0 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+}
+#toc nav li {
+  line-height: 1.3em;
+  margin: 2px 0;
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+}
+#toc a.xref {
+  white-space: normal;
+}
+/* references */
+.references dt {
+  text-align: right;
+  font-weight: bold;
+  min-width: 10ch;
+  margin-right: 1.5ch;
+}
+.references dt:target::before {
+  content: "⇒";
+  width: 15px;
+  margin: 0 10px 0 -25px;
+}
+.references dd {
+  margin-left: 12ch !important;
+  overflow: auto;
+}
+
+.refInstance {
+  margin-bottom: 1.25em;
+}
+
+.references .ascii {
+  margin-bottom: 0.25em;
+}
+
+/* index */
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  margin: 1em 0;
+}
+address.vcard .nameRole {
+  font-weight: 700;
+  margin-left: 0;
+}
+address.vcard .label {
+  margin: 0.5em 0;
+}
+address.vcard .type {
+  display: none;
+}
+.alternative-contact {
+  margin: 1.5em 0 1em;
+}
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses > section {
+    column-count: 2;
+    column-gap: 20px;
+  }
+  #authors-addresses > section > h2 {
+    column-span: all;
+  }
+  /* hack for break-inside: avoid-column */
+  #authors-addresses address {
+    display: inline-block;
+    break-inside: avoid-column;
+  }
+}
+
+.rfcEditorRemove p:first-of-type {
+  font-style: italic;
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+/* alternative layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+  }
+  #toc.active {
+      opacity: 1;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 2px 0 2px 6px;
+    padding-right: 1em;
+    font-size: 18px;
+    line-height: 24px;
+    min-width: 190px;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+  }
+  #toc h2::before { /* css hamburger */
+    float: right;
+    position: relative;
+    width: 1em;
+    height: 1px;
+    left: -164px;
+    margin: 8px 0 0 0;
+    background: white none repeat scroll 0 0;
+    box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+    content: "";
+  }
+  #toc nav {
+    display: none;
+    background-color: var(--background-color);
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+  #toc.active nav {
+    display: block;
+  }
+  /* Make the collapsed ToC header render white on gray also when it's a link */
+  #toc h2 a,
+  #toc h2 a:link,
+  #toc h2 a:focus,
+  #toc h2 a:hover,
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+  #toc a.toplink {
+    margin-top: 2px;
+  }
+}
+
+/* alternative layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 2em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  #toc nav > ul  {
+    margin-bottom: 2em;
+  }
+  #toc ul {
+    margin: 0 0 0 4px;
+    font-size: var(--small-font-size);
+  }
+  #toc ul :is(p, li) {
+    margin: 2px 0;
+    line-height: 22px;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+  .toplink {
+    display: none;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Changes introduced to fix issues found during implementation */
+
+/* Separate body from document info even without intervening H1 */
+section {
+  clear: both;
+}
+
+/* Top align author divs, to avoid names without organization dropping level with org names */
+.author {
+  vertical-align: top;
+}
+
+/* Style section numbers with more space between number and title */
+.section-number {
+  padding-right: 0.5em;
+}
+
+/* Add styling for a link in the ToC that points to the top of the document */
+a.toplink {
+  float: right;
+  margin: 8px 0.5em 0;
+}
+
+/* Provide styling for table cell text alignment */
+table .text-left {
+  text-align: left;
+}
+table .text-center {
+  text-align: center;
+}
+table .text-right {
+  text-align: right;
+}
+
+/* Make the alternative author contact information look less like just another
+   author, and group it closer with the primary author contact information */
+.alternative-contact {
+  margin: 0.5em 0 0.25em 0;
+}
+address .non-ascii {
+  margin: 0 0 0 2em;
+}
+
+/* With it being possible to set tables with alignment
+  left, center, and right, { width: 100%; } does not make sense */
+table {
+  width: auto;
+}
+
+/* Avoid reference text that sits in a block with very wide left margin,
+   because of a long floating dt label.*/
+.references dd {
+  overflow: visible;
+}
+
+/* Control caption placement */
+caption {
+  caption-side: bottom;
+}
+
+/* Limit the width of the author address vcard, so names in right-to-left
+   script don't end up on the other side of the page. */
+
+address.vcard {
+  max-width: 20em;
+  margin-right: auto;
+}
+
+/* For address alignment dependent on LTR or RTL scripts */
+address div.left {
+  text-align: left;
+}
+address div.right {
+  text-align: right;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg :is([stroke="black"], [stroke^="#000"]) {
+  stroke: var(--text-color);
+}
+svg :is([stroke="white"], [stroke^="#fff"]) {
+  stroke: var(--background-color);
+}
+svg :is([fill="black"], [fill^="#000"], :not([fill])) {
+  fill: var(--text-color);
+}
+svg :is([fill="white"], [fill^="#fff"]) {
+  fill: var(--background-color);
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">DNSSEC Multi-Algorithm Problem Statement</td>
+<td class="right">February 2024</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Thomassen, et al.</td>
+<td class="center">Expires 4 August 2024</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Domain Name System Operations</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-thomassen-dnsop-multialgo-problem-statement-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2024-02-01" class="published">1 February 2024</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Informational</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2024-08-04">4 August 2024</time></dd>
+<dt class="label-authors">Authors:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">P. Thomassen</div>
+<div class="org">deSEC, Secure Systems Engineering</div>
+</div>
+<div class="author">
+      <div class="author-name">D. Wessels</div>
+<div class="org">Verisign</div>
+</div>
+<div class="author">
+      <div class="author-name">S. Huque</div>
+<div class="org">Salesforce</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">DNSSEC Multi-Algorithm Problem Statement</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">There is an increasing awareness for use cases that rely on signed DNS responses
+to contain RRSIGs for only some (not all) of the algorithms advertised in a
+domain's DS RRset or trust anchor set. This document looks at these use cases in
+detail, and describes how validating resolvers are expected to react today when
+encountering these situations. Mostly, such setups work fine, but they are not
+compliant with specifications. To address this problem, the document walks
+through a number of solution approaches, each based on a different idea, and
+points out each one's benefits and disadvantages.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-2">TO BE REMOVED: This document is being collaborated on in Github at:
+<a href="https://github.com/peterthomassen/draft-thomassen-dnsop-multialgo-problem-statement">https://github.com/peterthomassen/draft-thomassen-dnsop-multialgo-problem-statement</a>.
+The most recent working version of the document, open issues, etc. should all be
+available there.  The authors (gratefully) accept pull requests.<a href="#section-abstract-2" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-discussion-venues">
+<a href="#name-discussion-venues" class="section-name selfRef">Discussion Venues</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">Discussion of this document takes place on the
+    Domain Name System Operations Working Group mailing list (dnsop@ietf.org),
+    which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/dnsop/">https://mailarchive.ietf.org/arch/browse/dnsop/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">Source for this draft and an issue tracker can be found at
+    <span><a href="https://github.com/desec-io/draft-thomassen-dnsop-multialgo-problem-statement">https://github.com/desec-io/draft-thomassen-dnsop-multialgo-problem-statement</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 4 August 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2024 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-use-cases-for-serving-rrsig" class="internal xref">Use cases for serving RRSIGs for only a subset of advertised algorithms</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.1">
+                <p id="section-toc.1-1.2.2.1.1" class="keepWithNext"><a href="#section-2.1" class="auto internal xref">2.1</a>.  <a href="#name-algorithm-rollovers" class="internal xref">Algorithm Rollovers</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.1.2.1">
+                    <p id="section-toc.1-1.2.2.1.2.1.1" class="keepWithNext"><a href="#section-2.1.1" class="auto internal xref">2.1.1</a>.  <a href="#name-root-zone-algorithm-rollove" class="internal xref">Root Zone Algorithm Rollover</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.2">
+                <p id="section-toc.1-1.2.2.2.1"><a href="#section-2.2" class="auto internal xref">2.2</a>.  <a href="#name-dnssec-enabled-multi-provid" class="internal xref">DNSSEC-Enabled Multi-Provider Setups</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.2.2.1">
+                    <p id="section-toc.1-1.2.2.2.2.1.1"><a href="#section-2.2.1" class="auto internal xref">2.2.1</a>.  <a href="#name-permanent-for-redundancy" class="internal xref">Permanent (for Redundancy)</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.2.2.2">
+                    <p id="section-toc.1-1.2.2.2.2.2.1"><a href="#section-2.2.2" class="auto internal xref">2.2.2</a>.  <a href="#name-temporary-for-provider-chan" class="internal xref">Temporary (for Provider Change)</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-resolver-behavior" class="internal xref">Resolver Behavior</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-expected-behavior" class="internal xref">Expected Behavior</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-actual-testbed-behavior" class="internal xref">Actual (Testbed) Behavior</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-challenge" class="internal xref">Challenge</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-solution-approaches" class="internal xref">Solution Approaches</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-just-loosen-the-rules-any-r" class="internal xref">Just loosen the rules, "any RRSIG is fine"</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-serve-all-rrsigs" class="internal xref">Serve all RRSIGs</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2.2.1">
+                    <p id="section-toc.1-1.5.2.2.2.1.1"><a href="#section-5.2.1" class="auto internal xref">5.2.1</a>.  <a href="#name-root-zone-other-zones-with-" class="internal xref">Root zone (+ other zones with trust anchors)</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2.2.2">
+                    <p id="section-toc.1-1.5.2.2.2.2.1"><a href="#section-5.2.2" class="auto internal xref">5.2.2</a>.  <a href="#name-zones-with-ds-rrset" class="internal xref">Zones with DS RRset</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-retry-elsewhere-when-an-exp" class="internal xref">Retry elsewhere when an expected signature is missing</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4">
+                <p id="section-toc.1-1.5.2.4.1"><a href="#section-5.4" class="auto internal xref">5.4</a>.  <a href="#name-deleg" class="internal xref">DELEG</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.5">
+                <p id="section-toc.1-1.5.2.5.1"><a href="#section-5.5" class="auto internal xref">5.5</a>.  <a href="#name-ds-hacks-to-signal-rrisg-pr" class="internal xref">DS hacks to signal RRISG presence rules</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.6">
+                <p id="section-toc.1-1.5.2.6.1"><a href="#section-5.6" class="auto internal xref">5.6</a>.  <a href="#name-what-else" class="internal xref">What else ...?</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-summary" class="internal xref">Summary</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-acknowledgements" class="internal xref">Acknowledgements</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-security-properties-in-mult" class="internal xref">Security Properties in Multi-Algorithm Configurations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-change-history-to-be-remove" class="internal xref">Change History (to be removed before publication)</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">Although DNSSEC has been designed with algorithm agility in mind, <em>most</em> zones
+today use only one signing algorithm at a time, especially when in a
+steady-state configuration. Multiple signing algorithms are usually in use only
+for algorithm rollovers and for some multi-provider configurations, both of
+which are relatively rare. Nevertheless, a number of notable zones have
+performed algorithm rollovers (such as .cz in 2010 and 2018 <span>[<a href="#RolloverCZ" class="cite xref">RolloverCZ</a>]</span>,
+followed by .br <span>[<a href="#RolloverBR" class="cite xref">RolloverBR</a>]</span>, and most recently .nl <span>[<a href="#RolloverNL" class="cite xref">RolloverNL</a>]</span> and
+.edu/.net/.com <span>[<a href="#RolloverVerisign" class="cite xref">RolloverVerisign</a>]</span>). Such algorithm rollovers come with a
+temporary transition period where both the old and the new algorithm are in use
+for the zone in question.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">There also is an increasing demand for DNSSEC-enabled multi-provider setups (as
+evidenced by existing support at Cloudflare and deSEC, plus implementation work
+going on at UltraDNS and others). According to the specs, all providers involved
+in such a setup would use the same set of signing algorithms. However, for a
+variety of reasons (including those given below), this is not a realistic
+premise. As a result, configurations are expected to occur in the wild where
+each provider's DNS response contains an RRSIG for only one algorithm, although
+several are advertised in the zone's DS RRset. The ongoing uncertainty about how
+to deal with such situations might become an impediment to predictable behavior
+in multi-signer DNSSEC setups, and thus to multi-signer DNSSEC itself.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">Further, during an algorithm rollover, when both the old and the new DS record
+have been deployed, there may be benefits (such as smaller response sizes, see
+<a href="#rollovers" class="auto internal xref">Section 2.1</a>) in not always requiring nameservers to serve signatures of either
+algorithm. This desire has been expressed in the Root Zone Algorithm Rollover
+Study <span>[<a href="#AlgorithmRolloverStudy" class="cite xref">AlgorithmRolloverStudy</a>]</span>.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">Looking closer, it turns out that these two problems are two sides of the same
+coin; they are actually the same problem.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<p id="section-1-5">This document looks at these use cases in more detail, and describes how
+validating resolvers react today when encountering these situations. It then
+walks through a number of ways to address the problem, each based on a different
+idea, and points out each one's benefits and disadvantages.<a href="#section-1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="usecases">
+<section id="section-2">
+      <h2 id="name-use-cases-for-serving-rrsig">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-use-cases-for-serving-rrsig" class="section-name selfRef">Use cases for serving RRSIGs for only a subset of advertised algorithms</a>
+      </h2>
+<p id="section-2-1">Current specifications <span>[<a href="#RFC4035" class="cite xref">RFC4035</a>]</span><span>[<a href="#RFC6840" class="cite xref">RFC6840</a>]</span>} require that a zone be signed with
+each signing algorithm listed in a zone's DS RRset or appearing via its trust
+anchors (TAs).<a href="#section-2-1" class="pilcrow">¶</a></p>
+<p id="section-2-2">This section explores a number of use cases where this poses a problem.<a href="#section-2-2" class="pilcrow">¶</a></p>
+<div id="rollovers">
+<section id="section-2.1">
+        <h3 id="name-algorithm-rollovers">
+<a href="#section-2.1" class="section-number selfRef">2.1. </a><a href="#name-algorithm-rollovers" class="section-name selfRef">Algorithm Rollovers</a>
+        </h3>
+<p id="section-2.1-1">When performing an algorithm rollover, current specifications effectively
+require double-signing the zone with both the old and the new algorithm before
+adding the new DS record. (Because the old DS record may be cached, this also
+applies when <em>replacing</em> the DS record, which is not an instantaneous
+operation.)<a href="#section-2.1-1" class="pilcrow">¶</a></p>
+<p id="section-2.1-2">Double-signing a zone leads to larger zone files, larger responses, higher risk
+of amplification attacks, larger resource usage and increased latency due to
+more frequent TCP fallback. For online signers, it causes additional real-time
+computational overhead.<a href="#section-2.1-2" class="pilcrow">¶</a></p>
+<p id="section-2.1-3">In addition to these (and perhaps other) operational risks, double-signing may
+also introduce financial burden (of course, depending on the size and/or qps
+rate of the zone).<a href="#section-2.1-3" class="pilcrow">¶</a></p>
+<p id="section-2.1-4">Those problems could be avoided if a (safe) way was found to allow responses
+that have signatures of only a subset of advertised algorithms.<a href="#section-2.1-4" class="pilcrow">¶</a></p>
+<div id="root-zone-algorithm-rollover">
+<section id="section-2.1.1">
+          <h4 id="name-root-zone-algorithm-rollove">
+<a href="#section-2.1.1" class="section-number selfRef">2.1.1. </a><a href="#name-root-zone-algorithm-rollove" class="section-name selfRef">Root Zone Algorithm Rollover</a>
+          </h4>
+<p id="section-2.1.1-1">This problem also appears when rolling the root zone algorithm, which requires
+updating resolvers' trust anchors. It is expected that signatures for the old
+algorithm need to be in place for a significant amount of time, while resolver
+operators are adding the new trust anchor to their configuration.<a href="#section-2.1.1-1" class="pilcrow">¶</a></p>
+<p id="section-2.1.1-2">This problem is exacerbated for a root zone algorithm rollover, where updating
+the trust anchor data used by resolvers is a slow and deliberate process.
+<span>[<a href="#RFC5011" class="cite xref">RFC5011</a>]</span> stipulates a new key must be pre-published for at least 30 days
+before it can be considered trusted. Additionally, IANA's documented process for
+future KSK rollovers pre-publishes a new key in the DNS for a year and a half
+(phase D of <span>[<a href="#IANAproposal" class="cite xref">IANAproposal</a>]</span>), and pre-publishes it in IANA’s trust anchor file
+two years (phases B through D). This applies both with or without a change to
+the signing algorithm, so that resolver operators can update their trust anchor
+configuration before the new key is actually used for signing.<a href="#section-2.1.1-2" class="pilcrow">¶</a></p>
+<p id="section-2.1.1-3">Current specifications require that, in this case, the zone be double-signed
+during that period of time (<span>[<a href="#RFC6840" class="cite xref">RFC6840</a>]</span> Section 5.11). For the root zone, this
+could lead to a potentially rather long phase of double-signing (on the order of
+a year) during which the above disadvantages would manifest.<a href="#section-2.1.1-3" class="pilcrow">¶</a></p>
+<p id="section-2.1.1-4">It thus seems desirable to find a way for publishing the new trust anchor
+without introducing the new algorithm into the zone just yet, as emphasized in
+the Root Zone Algorithm Rollover Study <span>[<a href="#AlgorithmRolloverStudy" class="cite xref">AlgorithmRolloverStudy</a>]</span>.<a href="#section-2.1.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="dnssec-enabled-multi-provider-setups">
+<section id="section-2.2">
+        <h3 id="name-dnssec-enabled-multi-provid">
+<a href="#section-2.2" class="section-number selfRef">2.2. </a><a href="#name-dnssec-enabled-multi-provid" class="section-name selfRef">DNSSEC-Enabled Multi-Provider Setups</a>
+        </h3>
+<div id="permanent-for-redundancy">
+<section id="section-2.2.1">
+          <h4 id="name-permanent-for-redundancy">
+<a href="#section-2.2.1" class="section-number selfRef">2.2.1. </a><a href="#name-permanent-for-redundancy" class="section-name selfRef">Permanent (for Redundancy)</a>
+          </h4>
+<p id="section-2.2.1-1">Some sites use several independent DNS providers, allowing to compensate for a
+full outage of one of the providers. One such site is github.com, which uses
+services by both Amazon Route 53 and NS1. Such highly redundant setups lead to
+very high DNS availability.<a href="#section-2.2.1-1" class="pilcrow">¶</a></p>
+<p id="section-2.2.1-2">When combined with DNSSEC, with each provider holding their own signing key(s),
+this is called a "multi-signer setup" <span>[<a href="#RFC8901" class="cite xref">RFC8901</a>]</span>. This allows multiple
+providers using distinct DNSSEC keys to cooperatively serve the same DNS zone.<a href="#section-2.2.1-2" class="pilcrow">¶</a></p>
+<p id="section-2.2.1-3">Under current specifications, these methods are illegal if the providers
+involved employ KSKs (or CSKs) with different DNSSEC algorithms. However, for
+reasons explained below, it is not a realistic expectation to have all providers
+use the same set of signing algorithms at all times; in fact, requiring this
+prevents any one provider from changing the algorithm. As a result,
+cryptographic hygiene effectively stalls.<a href="#section-2.2.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="temporary-for-provider-change">
+<section id="section-2.2.2">
+          <h4 id="name-temporary-for-provider-chan">
+<a href="#section-2.2.2" class="section-number selfRef">2.2.2. </a><a href="#name-temporary-for-provider-chan" class="section-name selfRef">Temporary (for Provider Change)</a>
+          </h4>
+<p id="section-2.2.2-1">Multi-signer setups can also be employed temporariliy in order to
+non-disruptively transfer a signed zone from one provider to another, each of
+which uses their own signing key. It is conceivable that this process be fully
+automated in the future.<a href="#section-2.2.2-1" class="pilcrow">¶</a></p>
+<p id="section-2.2.2-2">If the old and the new provider do not use the same signing KSK (or CSK)
+algorithms, such transfer cannot be done legally under current specifications.
+However, it is not a realistic expectation that both providers support the same
+set of algorithms (in particular when the reason for the transfer is outdated
+operations at the former provider).<a href="#section-2.2.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="resolver-behavior">
+<section id="section-3">
+      <h2 id="name-resolver-behavior">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-resolver-behavior" class="section-name selfRef">Resolver Behavior</a>
+      </h2>
+<p id="section-3-1">While the current specifications don't permit the situations described in
+<a href="#usecases" class="auto internal xref">Section 2</a>, resolvers usually deal with them just fine as long as they find a
+signature that allows verifying the response.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-3-2">Still, there is uncertainty about what precisely would work and what would not.<a href="#section-3-2" class="pilcrow">¶</a></p>
+<p id="section-3-3">This section describes how validators behave in these and related scenarios,
+such as when encountering unsupported algorithms.<a href="#section-3-3" class="pilcrow">¶</a></p>
+<div id="expectedbehavior">
+<section id="section-3.1">
+        <h3 id="name-expected-behavior">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-expected-behavior" class="section-name selfRef">Expected Behavior</a>
+        </h3>
+<p id="section-3.1-1">Assume a delegation with a DS RRset advertising two algorithms A and B. If a
+resolver supporting only algorithm A receives a response that carries an RRSIG
+for algorithm B (but not for algorithm A), the response is considered bogus and
+SERVFAIL results.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<p id="section-3.1-2">Consequently, it is not safe to omit signatures for algorithms announced in
+the DS RRset: the result is dependent on the set of algorithms supported by the
+resolver -- which the authoritative server cannot predict in the general case.
+An authoritative nameserver therefore runs the risk of provoking a SERVFAIL
+response to the resolver's client unless it serves signatures for all algorithms
+advertised in the DS RRset.<a href="#section-3.1-2" class="pilcrow">¶</a></p>
+<p id="section-3.1-3">Note that there's no risk of SERVFAIL when the resolver supports none of the
+advertised algorithms: in this case, the zone is treated as insecure.<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+<p id="section-3.1-4">For a summary, see the following table.<a href="#section-3.1-4" class="pilcrow">¶</a></p>
+<table class="center" id="table-1">
+          <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Resolvers Supports</th>
+              <th class="text-left" rowspan="1" colspan="1">Algorithms in DS</th>
+              <th class="text-left" rowspan="1" colspan="1">Algorithms in RRSIG</th>
+              <th class="text-left" rowspan="1" colspan="1">Expected Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A,B</td>
+              <td class="text-left" rowspan="1" colspan="1">A,B</td>
+              <td class="text-left" rowspan="1" colspan="1">A</td>
+              <td class="text-left" rowspan="1" colspan="1">valid</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A,B</td>
+              <td class="text-left" rowspan="1" colspan="1">A,B</td>
+              <td class="text-left" rowspan="1" colspan="1">B</td>
+              <td class="text-left" rowspan="1" colspan="1">valid</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A,B</td>
+              <td class="text-left" rowspan="1" colspan="1">A,B</td>
+              <td class="text-left" rowspan="1" colspan="1">A,B</td>
+              <td class="text-left" rowspan="1" colspan="1">valid</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A</td>
+              <td class="text-left" rowspan="1" colspan="1">A,B</td>
+              <td class="text-left" rowspan="1" colspan="1">A</td>
+              <td class="text-left" rowspan="1" colspan="1">valid</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A</td>
+              <td class="text-left" rowspan="1" colspan="1">A,B</td>
+              <td class="text-left" rowspan="1" colspan="1">A,B</td>
+              <td class="text-left" rowspan="1" colspan="1">valid</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A</td>
+              <td class="text-left" rowspan="1" colspan="1">A,B</td>
+              <td class="text-left" rowspan="1" colspan="1">B</td>
+              <td class="text-left" rowspan="1" colspan="1">bogus</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">A,B</td>
+              <td class="text-left" rowspan="1" colspan="1">C</td>
+              <td class="text-left" rowspan="1" colspan="1">C</td>
+              <td class="text-left" rowspan="1" colspan="1">insecure</td>
+            </tr>
+          </tbody>
+        </table>
+</section>
+</div>
+<div id="actual-testbed-behavior">
+<section id="section-3.2">
+        <h3 id="name-actual-testbed-behavior">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-actual-testbed-behavior" class="section-name selfRef">Actual (Testbed) Behavior</a>
+        </h3>
+<p id="section-3.2-1">TODO<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<p id="section-3.2-2">[Duane: Maybe we also want to set up some testbed zones and see how implementations actually behave.]<a href="#section-3.2-2" class="pilcrow">¶</a></p>
+<p id="section-3.2-3">[Shumon: I have personally in the past setup such testbed configurations, and have confirmed that the big 4 validators (BIND, Unbound, powerdns, knot) can in fact validate them fine. But I don't currently have one available publicly. I could probably set something up again though if needed (when I have some free time).]<a href="#section-3.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="challenge">
+<section id="section-4">
+      <h2 id="name-challenge">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-challenge" class="section-name selfRef">Challenge</a>
+      </h2>
+<p id="section-4-1">Given the increasing demand for DNSSEC-enabled multi-provider setups, it seems
+like such setups <em>will</em> sooner or later appear in the wild (or perhaps already
+have appeared). In fact, they <em>have</em> appeared for KSK algorithm rollovers, such
+as at .cz in 2010 <span>[<a href="#RolloverCZ" class="cite xref">RolloverCZ</a>]</span> and at .br in 2018 <span>[<a href="#RolloverBR" class="cite xref">RolloverBR</a>]</span>.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-2">From a signer's perspective, just "going ahead" is a reasonable thing to do, as
+for most configurations that one would practically deploy, serving just one
+signature <em>will</em> work. For example, when a zone's DS RRset advertises algorithms
+8 and 13, resolvers are going to accept responses that carry signatures for only
+one of these algorithms. In fact, pre-rollover testing by registro.br had shown
+that adverse effects are expected to be negligible <span>[<a href="#RolloverBR" class="cite xref">RolloverBR</a>]</span>.<a href="#section-4-2" class="pilcrow">¶</a></p>
+<p id="section-4-3">However, things break down as soon as one of the involved algorithms is no
+longer expected to be supported everywhere. For example, if the DS RRset
+advertises algorithms 5 and 8 (either permanently, or during a provider
+transfer), this might have worked a year or two ago. Today, resolvers running on
+a new Red Hat Linux release that has since appeared do no longer support
+algorithm 5 (due to a system-wide algorithm policy). When receiving a response
+with an algo-5 signature only, they will respond with SERVFAIL.<a href="#section-4-3" class="pilcrow">¶</a></p>
+<p id="section-4-4">As observed in <a href="#expectedbehavior" class="auto internal xref">Section 3.1</a>, this is related to the fact that an
+authoritative nameserver cannot reliably predict which algorithms a resolver
+might support. It's even harder to predict developments in algorithm support
+over time.<a href="#section-4-4" class="pilcrow">¶</a></p>
+<p id="section-4-5">Leaving this problem space without guidance seems like a dangerous path. With
+some serious use cases, it is time to start thinking about solutions that can
+make them work predicably and reliably, both now and in the future.<a href="#section-4-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="solution-approaches">
+<section id="section-5">
+      <h2 id="name-solution-approaches">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-solution-approaches" class="section-name selfRef">Solution Approaches</a>
+      </h2>
+<p id="section-5-1">This section describes ideas for accommodating the use cases described above,
+and points out aspects of them that are particularly favorable or problematic.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<p id="section-5-2">There's no expectation that this is a complete or gapless analysis. Rather, it
+is meant to structure the solution space, and rule out some options that look
+promising at first sight, but turn out problematic upon closer inspection.<a href="#section-5-2" class="pilcrow">¶</a></p>
+<div id="just-loosen-the-rules-any-rrsig-is-fine">
+<section id="section-5.1">
+        <h3 id="name-just-loosen-the-rules-any-r">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-just-loosen-the-rules-any-r" class="section-name selfRef">Just loosen the rules, "any RRSIG is fine"</a>
+        </h3>
+<p id="section-5.1-1">The proposal is to allow serving only one RRSIG for any single algorithm
+advertised in the DS RRset. If that algorithm isn't understood by the resolver,
+return the response as insecure (don't SERVFAIL).<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.1-2">This would work well if only done with algorithms that are known to be supported
+everywhere. For example, with algorithms 8 and 13 in the DS RRset, resolution
+and validation are expected to work smoothly under the modified specification.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<p id="section-5.1-3">However, this minimal approach does not offer any safety nets to make sure that
+this is really only done with generally supported algorithms. Codifying this
+approach without any further guidance on the algorithm constellations for which
+this is safe to do seems to miss the core of the problem, namely that algorithm
+support in resolvers is not everywhere and always the same. This becomes a
+significant problem when considering the time dependence of algorithm support,
+as follows:<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">In 2020, this approach would have worked with a provider using algorithm 5 or 7
+(which use SHA-1 for input hashing) and another provider using 8 or 13: any
+algorithm combination from these sets (such as 5 and 8) was supported virtually
+everywhere.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+<p id="section-5.1-5">With the new Red Hat Linux release that has since appeared, resolvers running on
+it no longer support algorithms 5 and 7. As a result, when receiving an algo-5
+or algo-7 RRSIG for a zone whose DS RRset also advertises 8 or 13, such
+resolvers will treat the response as insecure under the proposed rules. This
+allows an on-path attacker to downgrade the zone to insecure simply by switching
+the RRSIG algorithm number fields in all responses to 5 or 7.<a href="#section-5.1-5" class="pilcrow">¶</a></p>
+<p id="section-5.1-6">This implication opens up a trivial vector for downgrade-to-insecure attacks,
+and drastically changes the security model.<a href="#section-5.1-6" class="pilcrow">¶</a></p>
+<p id="section-5.1-7">This downgrade attack vector also impacts a DNS operator's capability to
+configure a new algorithm in addition to a very common one. This even applies to
+a single-provider setup where the operator intends to always serve RRSIGs for
+two algorithms. An operator could want to do this for at least two reasons:<a href="#section-5.1-7" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.1-8.1">
+            <p id="section-5.1-8.1.1">To gain experience with some new algorithm, for experimental purposes; or<a href="#section-5.1-8.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.1-8.2">
+            <p id="section-5.1-8.2.1">When a new class of algorithms is created and the operator desires dual-mode
+operation as long as that new algorithm class is not universally supported
+(e.g., some future PQC algorithm combined with a conventional algorithm for
+legacy clients).<a href="#section-5.1-8.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-5.1-9">The proposed specification update thwarts this mode of operation, because any
+resolver that does not support the additionally deployed algorithm can be
+trivially caused to return unvalidated responses, despite the other algorithm
+being supported. All that is needed is for the attacker to change the RRSIG's
+algorithm number to the unsupported one.<a href="#section-5.1-9" class="pilcrow">¶</a></p>
+<p id="section-5.1-10">This makes it extremely unattractive for DNS operators to deploy additional
+algorithms, even when known to deliver additional security benefits, or when
+their deployment would be beneficial for other reasons (such as gaining
+experience). Experiments and early-adopter deployments with new algorithms would
+be stalled, and as a result, cryptographic agility is severely hindered by this
+approach.<a href="#section-5.1-10" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="serve-all-rrsigs">
+<section id="section-5.2">
+        <h3 id="name-serve-all-rrsigs">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-serve-all-rrsigs" class="section-name selfRef">Serve all RRSIGs</a>
+        </h3>
+<p id="section-5.2-1">As this violates the goal of loosening the requirement somehow, it is not really
+a solution idea, but rather invites rethinking what are (or aren't) the problems
+when we keep doing what the specs say.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<div id="root-zone-other-zones-with-trust-anchors">
+<section id="section-5.2.1">
+          <h4 id="name-root-zone-other-zones-with-">
+<a href="#section-5.2.1" class="section-number selfRef">5.2.1. </a><a href="#name-root-zone-other-zones-with-" class="section-name selfRef">Root zone (+ other zones with trust anchors)</a>
+          </h4>
+<p id="section-5.2.1-1">For the reasons laid out in the Root Zone Algorithm Rollover Study
+<span>[<a href="#AlgorithmRolloverStudy" class="cite xref">AlgorithmRolloverStudy</a>]</span>, the root will have difficulty following this
+practice. The preferred approach would be to publish a trust anchor for the new
+algorithm and allow it to be configured on resolvers, without yet introducing
+the corresponding RRSIGs into the zone.<a href="#section-5.2.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.2.1-2">Note that unlike in the DS case, the situation where all trust anchor algorithms
+are unsupported cannot plausibly occur, as it does not seem reasonable to
+configure an unsupported trust anchor in the first place. Put differently, the
+set of configured trust anchors is tailored for the validator at hand (unlike
+the DS RRset, where the signer cannot assume that all configured algorithms are
+supported).<a href="#section-5.2.1-2" class="pilcrow">¶</a></p>
+<p id="section-5.2.1-3">The addition of a trust anchor with a new algorithm (which may not yet be
+accompanied by corresponding RRSIGs) is thus <em>completely inconsequential, as
+long as an existing trust anchor continues to work</em> (i.e., corresponding DNSKEYs
+and RRSIGs are served). This can be expected to be the case if the existing
+trust anchor’s algorithm is one that validators MUST support (see <span><a href="https://rfc-editor.org/rfc/rfc8624#section-3" class="relref">Section 3</a> of [<a href="#RFC8624" class="cite xref">RFC8624</a>]</span>).<a href="#section-5.2.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.2.1-4">Thus, there seems to be no good reason to insist on serving the new RRSIGs when
+publishing a trust anchor with a new algorithm; the signer only MUST ensure that
+a pre-existing, mandatory-to-support algorithm is available and works throughout
+the pre-publication phase.<a href="#section-5.2.1-4" class="pilcrow">¶</a></p>
+<p id="section-5.2.1-5">Based on this analysis, it seems conceivable to loosen the rules for the root
+(or, more generally, zones with trust anchors), without loosening the rules for
+RRSIG presence in the context of DS-advertised algorithms.<a href="#section-5.2.1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="zones-with-ds-rrset">
+<section id="section-5.2.2">
+          <h4 id="name-zones-with-ds-rrset">
+<a href="#section-5.2.2" class="section-number selfRef">5.2.2. </a><a href="#name-zones-with-ds-rrset" class="section-name selfRef">Zones with DS RRset</a>
+          </h4>
+<p id="section-5.2.2-1">As described further up, there are multiple scenarios in multi-provider setups
+where providers might want to use different algorithms for their SEP keys.<a href="#section-5.2.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.2.2-2">Enforcing them to use the same algorithm is not practical. There may be
+practical reasons preventing that (e.g., two providers using HSMs whose sets of
+supported algorithms doesn't overlap; an operator may be uncooperative).<a href="#section-5.2.2-2" class="pilcrow">¶</a></p>
+<p id="section-5.2.2-3">Further, requiring all providers to use the same algorithms stalls all attempts
+for major providers to transition to future algorithm, unless all introduce
+support at the same time -- which seems an unrealistic premise.<a href="#section-5.2.2-3" class="pilcrow">¶</a></p>
+<p id="section-5.2.2-4">For these reasons, we have to expect live setups where RRSIGs are not present
+for all algorithms. Reiterating the specs is denying reality; we need to think
+harder.<a href="#section-5.2.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="retry">
+<section id="section-5.3">
+        <h3 id="name-retry-elsewhere-when-an-exp">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-retry-elsewhere-when-an-exp" class="section-name selfRef">Retry elsewhere when an expected signature is missing</a>
+        </h3>
+<p id="section-5.3-1">The idea here is to ask another nameserver when the response does not contain an
+RRSIG with a supported algorithm from the DS RRset. For example, if the DS RRset
+advertises algorithms 5 and 8, with only the latter supported by the resolver,
+the resolver would ask another nameserver if the response only
+contained an RRSIG with the unsupported algorithm (5).<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<p id="section-5.3-2">This reflects the notion that <em>some</em> provider in a multi-provider setup will
+have requested inclusion of that DS record, and will have nameserver in the NS
+RRset. Thus, if you keep asking another one, you will eventually get a response
+with an RRSIG corresponding to your favorite DS-advertised algorithm.<a href="#section-5.3-2" class="pilcrow">¶</a></p>
+<p id="section-5.3-3">However, there are multiple problems here:<a href="#section-5.3-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.3-4.1">
+            <p id="section-5.3-4.1.1">Retries add extra latency, bandwidth usage, and other resource consumption
+such as for encrypted tranpsort.<a href="#section-5.3-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.3-4.2">
+            <p id="section-5.3-4.2.1">More critically, this approach undermines the very guarantees a
+multi-provider setup is supposed to give. This is because if one provider's
+RRSIG is not supported, resolution depends on the other provider. As a
+result, providers share fate, which is exactly what multi-provider should
+defend against. (Otherwise, why have multiple providers?)<a href="#section-5.3-4.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="deleg">
+<section id="section-5.4">
+        <h3 id="name-deleg">
+<a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-deleg" class="section-name selfRef">DELEG</a>
+        </h3>
+<p id="section-5.4-1">The DELEG record is envisioned to modernize the way DNS delegations work, by
+providing a signed service binding of the delegation owner name to a nameserver
+<span>[<a href="#I-D.dnsop-deleg" class="cite xref">I-D.dnsop-deleg</a>]</span>. Multiple DELEG records can be published by the parent (just
+like multiple NS records), and each of them can carry key-value parameters
+pertaining to the nameserver it points at.<a href="#section-5.4-1" class="pilcrow">¶</a></p>
+<p id="section-5.4-2">This mechanism is expected to be capable of signaling DNSSEC parameters on a
+per-nameserver basis, exposing which SEP algorithms are in use at each
+nameserver (provider). When the algorithm sets vary across nameservers, a
+validating resolver may selectively query only those that are expected to return
+supported RRSIGs. This would get rid of the undesirable cases where the resolver
+happens to ask a "wrong" nameserver that only serves an unsupported signature,
+and also removes the extra latency of the "retry" approach (<a href="#retry" class="auto internal xref">Section 5.3</a>).<a href="#section-5.4-2" class="pilcrow">¶</a></p>
+<p id="section-5.4-3">However, such selective querying undermines multi-provider guarantees: When one
+provider's set of nameservers is excluded from querying, the setup is
+effectively reduced to a single-provider setup (just like in the "retry"
+proposal). In other words, although it may seem tempting at first sight,
+nameserver-specific signaling is not fit for purpose in a multi-provider
+context. (DELEG certainly has great potential, but <em>this</em> is not amongst the use
+cases it enables.)<a href="#section-5.4-3" class="pilcrow">¶</a></p>
+<p id="section-5.4-4">Further, resolvers that do not support DELEG will be around for a very long
+time; backwards-compatible delegations without DELEG will thus have to work for
+the foreseeable (and unforeseeable) future. Even if DELEG <em>did</em> help with the
+problem at hand, the requirement of a working classical fallback would leave
+legacy resolvers in the dark. Indeed, this is not only the case for permament
+multi-provider setups, but in all of the use cases mentioned above: root trust
+anchor pre-publishing, uncooperative provider transfer etc. work no better when
+DELEG is available.<a href="#section-5.4-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="ds-hacks-to-signal-rrisg-presence-rules">
+<section id="section-5.5">
+        <h3 id="name-ds-hacks-to-signal-rrisg-pr">
+<a href="#section-5.5" class="section-number selfRef">5.5. </a><a href="#name-ds-hacks-to-signal-rrisg-pr" class="section-name selfRef">DS hacks to signal RRISG presence rules</a>
+        </h3>
+<p id="section-5.5-1">It has been proposed that special-purpose DS records could signal the manner in
+which the domain owner wishes the set of DS-advertised algorithms to be use for
+validation (such as, "all of them", "any of them", "opportunistic", ...)
+<span>[<a href="#DSHack" class="cite xref">DSHack</a>]</span>.<a href="#section-5.5-1" class="pilcrow">¶</a></p>
+<p id="section-5.5-2">This approach is problematic for several reasons:<a href="#section-5.5-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.5-3.1">
+            <p id="section-5.5-3.1.1">It is not backward-compatible (requires all resolvers to upgrade).<a href="#section-5.5-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.5-3.2">
+            <p id="section-5.5-3.2.1">It does not work with registries that consume DNSKEY-style records and
+compute DS records themselves.<a href="#section-5.5-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.5-3.3">
+            <p id="section-5.5-3.3.1">It is entirely unclear how this kind of signaling would be compatible with
+CDS provisioning (RFC 7344) with multiple providers.<a href="#section-5.5-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="what-else-">
+<section id="section-5.6">
+        <h3 id="name-what-else">
+<a href="#section-5.6" class="section-number selfRef">5.6. </a><a href="#name-what-else" class="section-name selfRef">What else ...?</a>
+        </h3>
+<p id="section-5.6-1">There may be other appraoches that no one has thought of.<a href="#section-5.6-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="summary">
+<section id="section-6">
+      <h2 id="name-summary">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-summary" class="section-name selfRef">Summary</a>
+      </h2>
+<p id="section-6-1">The above solution approaches turn out to be insufficient to address the problem
+space:<a href="#section-6-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6-2.1">
+          <p id="section-6-2.1.1">Structural modifications (DS hack etc.) in general are problematic, as they
+consistute a significant change to the protocol framework.<a href="#section-6-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-6-2.2">
+          <p id="section-6-2.2.1">Ignoring certain nameservers is not pratical (retry/DELEG),<a href="#section-6-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-6-2.3">
+          <p id="section-6-2.3.1">Serving all RRSIGs is not pratical.<a href="#section-6-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-6-2.4">
+          <p id="section-6-2.4.1">Just relaxing the rules is not practical.<a href="#section-6-2.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-6-3">These proposals quite distinctly take sides either with availability (e.g.,
+"just relax the rules") or security ("ignore certain nameservers"). As such,
+they are rather uncompromising.<a href="#section-6-3" class="pilcrow">¶</a></p>
+<p id="section-6-4">However, it is conceivable to design a more measured solution by combining
+aspects from these approaches.<a href="#section-6-4" class="pilcrow">¶</a></p>
+<p id="section-6-5">Perhaps, it's possible to relax requirements for some algorithms that are
+generally understood (so that a signer might choose "one from the pool"), while
+keeping tighter rules for algorithms where relaxed rules would pose risks.<a href="#section-6-5" class="pilcrow">¶</a></p>
+<p id="section-6-6">Perhaps, it's also possible to combine this with a well-considered retry
+mechanism.<a href="#section-6-6" class="pilcrow">¶</a></p>
+<p id="section-6-7">And perhaps there are directions nobody has thought of. In any case, it seems
+worthwhile to think hard about a proper solution.<a href="#section-6-7" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="acknowledgements">
+<section id="section-7">
+      <h2 id="name-acknowledgements">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-acknowledgements" class="section-name selfRef">Acknowledgements</a>
+      </h2>
+<p id="section-7-1">Edward Lewis<a href="#section-7-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<section id="section-8">
+      <h2 id="name-references">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-8.1">
+        <h3 id="name-normative-references">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="RFC4035">[RFC4035]</dt>
+        <dd>
+<span class="refAuthor">Arends, R.</span>, <span class="refAuthor">Austein, R.</span>, <span class="refAuthor">Larson, M.</span>, <span class="refAuthor">Massey, D.</span>, and <span class="refAuthor">S. Rose</span>, <span class="refTitle">"Protocol Modifications for the DNS Security Extensions"</span>, <span class="seriesInfo">RFC 4035</span>, <span class="seriesInfo">DOI 10.17487/RFC4035</span>, <time datetime="2005-03" class="refDate">March 2005</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc4035">https://www.rfc-editor.org/rfc/rfc4035</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5011">[RFC5011]</dt>
+        <dd>
+<span class="refAuthor">StJohns, M.</span>, <span class="refTitle">"Automated Updates of DNS Security (DNSSEC) Trust Anchors"</span>, <span class="seriesInfo">STD 74</span>, <span class="seriesInfo">RFC 5011</span>, <span class="seriesInfo">DOI 10.17487/RFC5011</span>, <time datetime="2007-09" class="refDate">September 2007</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5011">https://www.rfc-editor.org/rfc/rfc5011</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6840">[RFC6840]</dt>
+        <dd>
+<span class="refAuthor">Weiler, S., Ed.</span> and <span class="refAuthor">D. Blacka, Ed.</span>, <span class="refTitle">"Clarifications and Implementation Notes for DNS Security (DNSSEC)"</span>, <span class="seriesInfo">RFC 6840</span>, <span class="seriesInfo">DOI 10.17487/RFC6840</span>, <time datetime="2013-02" class="refDate">February 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6840">https://www.rfc-editor.org/rfc/rfc6840</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8624">[RFC8624]</dt>
+      <dd>
+<span class="refAuthor">Wouters, P.</span> and <span class="refAuthor">O. Sury</span>, <span class="refTitle">"Algorithm Implementation Requirements and Usage Guidance for DNSSEC"</span>, <span class="seriesInfo">RFC 8624</span>, <span class="seriesInfo">DOI 10.17487/RFC8624</span>, <time datetime="2019-06" class="refDate">June 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8624">https://www.rfc-editor.org/rfc/rfc8624</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-8.2">
+        <h3 id="name-informative-references">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="AlgorithmRolloverStudy">[AlgorithmRolloverStudy]</dt>
+        <dd>
+<span class="refAuthor">Design Team Report</span>, <span class="refTitle">"Root Zone Algorithm Rollover Study (Draft)"</span>, <time datetime="2023" class="refDate">2023</time>, <span>&lt;<a href="https://itp.cdn.icann.org/en/files/domain-name-system-security-extensions-dnssec/draft-report-root-zone-dnssec-algorithm-rollover-study-19-10-2023-en.pdf">https://itp.cdn.icann.org/en/files/domain-name-system-security-extensions-dnssec/draft-report-root-zone-dnssec-algorithm-rollover-study-19-10-2023-en.pdf</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="DSHack">[DSHack]</dt>
+        <dd>
+<span class="refAuthor">Huque, S.</span>, <span class="refTitle">"RFC Adjustments for Multi-Signer"</span>, <time datetime="2022" class="refDate">2022</time>, <span>&lt;<a href="https://archive.icann.org/meetings/icann73/files/content=t_attachment,f_%223.7%20Huque%20RFC%20Adjustments%20for%20Multi-Signer.pdf%22/3.7%20Huque%20RFC%20Adjustments%20for%20Multi-Signer.pdf">https://archive.icann.org/meetings/icann73/files/content=t_attachment,f_%223.7%20Huque%20RFC%20Adjustments%20for%20Multi-Signer.pdf%22/3.7%20Huque%20RFC%20Adjustments%20for%20Multi-Signer.pdf</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.dnsop-deleg">[I-D.dnsop-deleg]</dt>
+        <dd>
+<span class="refAuthor">April, T.</span>, <span class="refAuthor">Špaček, P.</span>, <span class="refAuthor">Weber, R.</span>, and <span class="refAuthor">Lawrence</span>, <span class="refTitle">"Extensible Delegation for DNS"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-dnsop-deleg-00</span>, <time datetime="2024-01-23" class="refDate">23 January 2024</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-dnsop-deleg-00">https://datatracker.ietf.org/doc/html/draft-dnsop-deleg-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="IANAproposal">[IANAproposal]</dt>
+        <dd>
+<span class="refAuthor">IANA</span>, <span class="refTitle">"Proposal for Future Root Zone KSK Rollovers"</span>, <time datetime="2019" class="refDate">2019</time>, <span>&lt;<a href="https://www.icann.org/en/system/files/files/proposal-future-rz-ksk-rollovers-01nov19-en.pdf">https://www.icann.org/en/system/files/files/proposal-future-rz-ksk-rollovers-01nov19-en.pdf</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8901">[RFC8901]</dt>
+        <dd>
+<span class="refAuthor">Huque, S.</span>, <span class="refAuthor">Aras, P.</span>, <span class="refAuthor">Dickinson, J.</span>, <span class="refAuthor">Vcelak, J.</span>, and <span class="refAuthor">D. Blacka</span>, <span class="refTitle">"Multi-Signer DNSSEC Models"</span>, <span class="seriesInfo">RFC 8901</span>, <span class="seriesInfo">DOI 10.17487/RFC8901</span>, <time datetime="2020-09" class="refDate">September 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8901">https://www.rfc-editor.org/rfc/rfc8901</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RolloverBR">[RolloverBR]</dt>
+        <dd>
+<span class="refAuthor">Kuroiwa, C.</span>, <span class="refTitle">"Algorithm Rollover on .br"</span>, <time datetime="2018" class="refDate">2018</time>, <span>&lt;<a href="https://ftp.registro.br/pub/gts/gts32/01-br-algorithm-rollover.pdf">https://ftp.registro.br/pub/gts/gts32/01-br-algorithm-rollover.pdf</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RolloverCZ">[RolloverCZ]</dt>
+        <dd>
+<span class="refAuthor">Talíř, J.</span>, <span class="refTitle">"ECDSA in .CZ: Story of first usage of ECDSA in TLD space"</span>, <time datetime="2018" class="refDate">2018</time>, <span>&lt;<a href="https://indico.dns-oarc.net/event/29/contributions/651/attachments/638/1033/ecdsa-in-cz.pdf">https://indico.dns-oarc.net/event/29/contributions/651/attachments/638/1033/ecdsa-in-cz.pdf</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RolloverNL">[RolloverNL]</dt>
+        <dd>
+<span class="refAuthor">Ubbink, S.</span>, <span class="refAuthor">Bulten, J.</span>, and <span class="refAuthor">N. Willems</span>, <span class="refTitle">"Looking back at .nl's algorithm rollover"</span>, <time datetime="2023" class="refDate">2023</time>, <span>&lt;<a href="https://www.sidn.nl/en/news-and-blogs/looking-back-at-nls-algorithm-rollover">https://www.sidn.nl/en/news-and-blogs/looking-back-at-nls-algorithm-rollover</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RolloverVerisign">[RolloverVerisign]</dt>
+      <dd>
+<span class="refAuthor">Wessels, D.</span>, <span class="refTitle">"Transitioning Verisign’s TLDs to Elliptic Curve DNSSEC"</span>, <time datetime="2023" class="refDate">2023</time>, <span>&lt;<a href="https://indico.dns-oarc.net/event/47/contributions/1012/attachments/973/1821/verisign-tld-updates.pdf">https://indico.dns-oarc.net/event/47/contributions/1012/attachments/973/1821/verisign-tld-updates.pdf</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+<div id="security-properties-in-multi-algorithm-configurations">
+<section id="appendix-A">
+      <h2 id="name-security-properties-in-mult">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-security-properties-in-mult" class="section-name selfRef">Security Properties in Multi-Algorithm Configurations</a>
+      </h2>
+<p id="appendix-A-1">When a delegation is secured with DNSSEC, then a compliant validating resolver
+supporting at least one of the DS algorithms will either return validated data
+or SERVFAIL. When the delegation has multiple DS algorithms, there is not
+expectation that any particular one will be used for validation.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<p id="appendix-A-2">Downgrade-to-insecure resistance: It is currently only allowed to treat
+responses as insecure when the resolver supports <em>none</em> of the algorithms
+advertised via DS. Otherwise, and on-path attacker could downgrade to insecure
+by simply stripping RRSIGs with supported algorithms from the response (leaving
+only unsupported ones). The appropriate reaction to bogus responses like this is
+SERVFAIL.<a href="#appendix-A-2" class="pilcrow">¶</a></p>
+<p id="appendix-A-3"><em>No</em> algorithm "downgrade" resistance: If a resolver supports several algorithms
+that are advertised in a delegation's DS RRset, and responses contain RRSIGs for
+all of these algorithms, an on-patch attacker may generally force an algorithm
+of their choice to be used for validation, by stripping (or invalidating) the
+other RRSIG records. This is because according to <span><a href="https://rfc-editor.org/rfc/rfc6840#section-5.11" class="relref">Section 5.11</a> of [<a href="#RFC6840" class="cite xref">RFC6840</a>]</span>,
+"Validators SHOULD accept any single valid path.  They SHOULD NOT insist that
+all algorithms signaled in the DS RRset work". (However, some resolvers can be
+configured to insist, e.g., Unbound's <code>harden-algo-downgrade</code> setting.)<a href="#appendix-A-3" class="pilcrow">¶</a></p>
+<p id="appendix-A-4">The notion of "algorithm downgrade" seems to imply a hierarchy of algorithms.
+This is not the intended meaning. Instead, the term is commonly used to express
+that control over the selection of a validation path effectively is with the
+attacker, not with the validator.<a href="#appendix-A-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="change-history-to-be-removed-before-publication">
+<section id="appendix-B">
+      <h2 id="name-change-history-to-be-remove">
+<a href="#appendix-B" class="section-number selfRef">Appendix B. </a><a href="#name-change-history-to-be-remove" class="section-name selfRef">Change History (to be removed before publication)</a>
+      </h2>
+<ul class="normal">
+<li class="normal" id="appendix-B-1.1">
+          <p id="appendix-B-1.1.1">draft-thomassen-dnsop-multialgo-problem-statement-00<a href="#appendix-B-1.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<ul class="normal ulEmpty">
+<li class="normal ulEmpty" id="appendix-B-2.1">
+          <p id="appendix-B-2.1.1">Initial public draft.<a href="#appendix-B-2.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-C">
+      <h2 id="name-authors-addresses">
+<a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Peter Thomassen</span></div>
+<div dir="auto" class="left"><span class="org">deSEC, Secure Systems Engineering</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:peter@desec.io" class="email">peter@desec.io</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Duane Wessels</span></div>
+<div dir="auto" class="left"><span class="org">Verisign</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:dwessels@verisign.com" class="email">dwessels@verisign.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Shumon Huque</span></div>
+<div dir="auto" class="left"><span class="org">Salesforce</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:shuque@gmail.com" class="email">shuque@gmail.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
