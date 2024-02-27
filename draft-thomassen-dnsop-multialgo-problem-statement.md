@@ -110,10 +110,10 @@ temporary transition period where both the old and the new algorithm are in use
 for the zone in question.
 
 There also is an increasing demand for DNSSEC-enabled multi-provider setups (as
-evidenced by existing support at Cloudflare and deSEC, plus implementation work
-going on at UltraDNS and others). According to the specs, all providers involved
-in such a setup would use the same set of signing algorithms. However, for a
-variety of reasons (including those given below), this is not a realistic
+evidenced by existing support at NS1, Cloudflare, and deSEC, plus implementation
+work going on at UltraDNS and others). According to the specs, all providers
+involved in such a setup would use the same set of signing algorithms. However,
+for a variety of reasons (including those given below), this is not a realistic
 premise. As a result, configurations are expected to occur in the wild where
 each provider's DNS response contains an RRSIG for only one algorithm, although
 several are advertised in the zone's DS RRset. The ongoing uncertainty about how
