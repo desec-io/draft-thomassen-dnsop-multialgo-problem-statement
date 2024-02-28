@@ -5,10 +5,10 @@
 Domain Name System Operations                               P. Thomassen
 Internet-Draft                         deSEC, Secure Systems Engineering
 Intended status: Informational                                D. Wessels
-Expires: 4 August 2024                                          Verisign
+Expires: 31 August 2024                                         Verisign
                                                                 S. Huque
                                                               Salesforce
-                                                         1 February 2024
+                                                        28 February 2024
 
 
                 DNSSEC Multi-Algorithm Problem Statement
@@ -60,7 +60,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 4 August 2024.
+   This Internet-Draft will expire on 31 August 2024.
 
 Copyright Notice
 
@@ -123,17 +123,17 @@ Table of Contents
    algorithm are in use for the zone in question.
 
    There also is an increasing demand for DNSSEC-enabled multi-provider
-   setups (as evidenced by existing support at Cloudflare and deSEC,
-   plus implementation work going on at UltraDNS and others).  According
-   to the specs, all providers involved in such a setup would use the
-   same set of signing algorithms.  However, for a variety of reasons
-   (including those given below), this is not a realistic premise.  As a
-   result, configurations are expected to occur in the wild where each
-   provider's DNS response contains an RRSIG for only one algorithm,
-   although several are advertised in the zone's DS RRset.  The ongoing
-   uncertainty about how to deal with such situations might become an
-   impediment to predictable behavior in multi-signer DNSSEC setups, and
-   thus to multi-signer DNSSEC itself.
+   setups (as evidenced by existing support at NS1, Cloudflare, and
+   deSEC, plus implementation work going on at UltraDNS and others).
+   According to the specs, all providers involved in such a setup would
+   use the same set of signing algorithms.  However, for a variety of
+   reasons (including those given below), this is not a realistic
+   premise.  As a result, configurations are expected to occur in the
+   wild where each provider's DNS response contains an RRSIG for only
+   one algorithm, although several are advertised in the zone's DS
+   RRset.  The ongoing uncertainty about how to deal with such
+   situations might become an impediment to predictable behavior in
+   multi-signer DNSSEC setups, and thus to multi-signer DNSSEC itself.
 
    Further, during an algorithm rollover, when both the old and the new
    DS record have been deployed, there may be benefits (such as smaller

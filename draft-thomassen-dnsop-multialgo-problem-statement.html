@@ -22,18 +22,18 @@ points out each one's benefits and disadvantages.
 The most recent working version of the document, open issues, etc. should all be
 available there.  The authors (gratefully) accept pull requests. 
     " name="description">
-<meta content="xml2rfc 3.19.1" name="generator">
+<meta content="xml2rfc 3.19.4" name="generator">
 <meta content="Internet-Draft" name="keyword">
 <meta content="draft-thomassen-dnsop-multialgo-problem-statement-latest" name="ietf.draft">
 <!-- Generator version information:
-  xml2rfc 3.19.1
+  xml2rfc 3.19.4
     Python 3.11.6
     ConfigArgParse 1.7
     google-i18n-address 3.1.0
     intervaltree 3.1.0
     Jinja2 3.1.2
     lxml 4.9.3
-    platformdirs 4.1.0
+    platformdirs 4.2.0
     pycountry 22.3.5
     PyYAML 6.0.1
     requests 2.31.0
@@ -1042,7 +1042,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Thomassen, et al.</td>
-<td class="center">Expires 4 August 2024</td>
+<td class="center">Expires 31 August 2024</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1055,12 +1055,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-thomassen-dnsop-multialgo-problem-statement-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2024-02-01" class="published">1 February 2024</time>
+<time datetime="2024-02-28" class="published">28 February 2024</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Informational</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2024-08-04">4 August 2024</time></dd>
+<dd class="expires"><time datetime="2024-08-31">31 August 2024</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1124,7 +1124,7 @@ available there.  The authors (gratefully) accept pull requests.<a href="#sectio
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 4 August 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 31 August 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1271,10 +1271,10 @@ followed by .br <span>[<a href="#RolloverBR" class="cite xref">RolloverBR</a>]</
 temporary transition period where both the old and the new algorithm are in use
 for the zone in question.<a href="#section-1-1" class="pilcrow">¶</a></p>
 <p id="section-1-2">There also is an increasing demand for DNSSEC-enabled multi-provider setups (as
-evidenced by existing support at Cloudflare and deSEC, plus implementation work
-going on at UltraDNS and others). According to the specs, all providers involved
-in such a setup would use the same set of signing algorithms. However, for a
-variety of reasons (including those given below), this is not a realistic
+evidenced by existing support at NS1, Cloudflare, and deSEC, plus implementation
+work going on at UltraDNS and others). According to the specs, all providers
+involved in such a setup would use the same set of signing algorithms. However,
+for a variety of reasons (including those given below), this is not a realistic
 premise. As a result, configurations are expected to occur in the wild where
 each provider's DNS response contains an RRSIG for only one algorithm, although
 several are advertised in the zone's DS RRset. The ongoing uncertainty about how
